@@ -1,0 +1,10 @@
+<launch>
+    <arg name="host" default="0.0.0.0" />
+    <arg name="port" default="50000" />
+    <arg name="topic_name" default="/xhand_control/xhand_socket" />
+    <node name="xhand_socket" pkg="xhand_socket" type="socket_receiver_node" output="screen">
+        <param name="host" type="str" value="$(arg host)" />
+        <param name="port" type="int" value="$(arg port)" />
+        <param name="topic_name" type="str" value="$(arg topic_name)" />
+    </node>
+</launch>

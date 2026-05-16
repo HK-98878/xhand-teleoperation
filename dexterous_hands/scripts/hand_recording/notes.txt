@@ -1,0 +1,3 @@
+python src/data_converter.py <> --primary-camera ugreen_main --keep-blank-episodes --episode-report report.json
+
+python src/data_converter.py <> --primary-camera ugreen_main --keep-blank-episodes

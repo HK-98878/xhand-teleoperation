@@ -1,0 +1,77 @@
+#!/usr/bin/env python
+
+import json
+import socket
+
+import rospy
+import std_msgs
+import std_msgs.msg
+
+
+class XHandSocketAdapter:
+    def __init__(self, host: str = "0.0.0.0", port: int = 50000, topic_name: str = "/xhand_control/xhand_socket"):
+        self.host = host
+        self.port = port
+        self.server_socket = None
+        self.conn = None
+        self.conn_file = None
+        rospy.init_node("xhand_state_filter_node")
+        self.publisher = rospy.Publisher(topic_name, std_msgs.msg.Float64MultiArray, queue_size=10)
+
+    def start_server(self):
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_socket.bind((self.host, self.port))
+        self.server_socket.listen()
+        rospy.loginfo(f"服务器已启动，正在监听端口 {self.port}...")
+
+    def accept_connection(self):
+        if self.server_socket is None:
+            rospy.logerr("服务器未启动，请先调用 start_server() 启动服务器")
+            return
+        self.conn, addr = self.server_socket.accept()
+        rospy.loginfo(f"已连接客户端：{addr}")
+        self.conn_file = self.conn.makefile("r")
+
+    def handle_data(self):
+        while True:
+            try:
+                if self.conn_file is None:
+                    rospy.logerr("未连接到客户端，请先调用 accept_connection() 连接客户端")
+                    break
+                data_json = self.conn_file.readline()
+                if not data_json:
+                    break
+                state_joint_position = json.loads(data_json.strip())
+                state_joint_position = list(map(float, state_joint_position))
+                # rospy.logdebug(f"接收到的手势数据：{state_joint_position}")
+                msg = std_msgs.msg.Float64MultiArray()
+                msg.data = state_joint_position
+                self.publisher.publish(msg)
+            except Exception as e:
+                print(f"接收数据时出错：{e}")
+                self.reconnect()
+
+    def reconnect(self):
+        rospy.logwarn("尝试重新连接...")
+        if self.conn_file is not None:
+            self.conn_file.close()
+        if self.conn is not None:
+            self.conn.close()
+        self.accept_connection()
+
+    def run(self):
+        self.start_server()
+        while not rospy.is_shutdown():
+            self.accept_connection()
+            self.handle_data()
+
+
+if __name__ == "__main__":
+    try:
+        host = rospy.get_param("~host", "0.0.0.0")
+        port = rospy.get_param("~port", 50000)
+        topic_name = rospy.get_param("~topic_name", "/xhand_control/xhand_socket")
+        node = XHandSocketAdapter(host, port, topic_name)  # type:ignore
+        node.run()
+    except rospy.ROSInterruptException:
+        pass

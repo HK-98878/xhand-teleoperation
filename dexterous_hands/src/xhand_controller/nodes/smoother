@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+from typing import TYPE_CHECKING
+
+import rospy
+
+if TYPE_CHECKING:
+    from utils import Smoother
+
+    from xhand_utils.src.xhand_utils.xhand_utils import XHandState, XHandStateArrayMsg
+else:
+    from xhand_controller.utils import Smoother
+    from xhand_utils import XHandState, XHandStateArrayMsg
+
+
+class XHandStateFilterNode:
+    def __init__(self):
+        rospy.init_node("xhand_state_filter_node")
+        self.frequency = rospy.get_param("~frequency", 83)
+        self.history_len = rospy.get_param("~history_len", 5)
+        self.alpha = rospy.get_param("~alpha", 0.1)
+        self.beta = rospy.get_param("~beta", 0.01)
+        rospy.loginfo(f"Frequency: {self.frequency}")
+        rospy.loginfo(f"History length: {self.history_len}")
+        rospy.loginfo(f"Alpha: {self.alpha}")
+        rospy.loginfo(f"Beta: {self.beta}")
+
+        self.pos_smoother = Smoother(
+            T=1.0 / self.frequency,
+            alpha=self.alpha,
+            beta=self.beta,
+            history_len=self.history_len,
+        )
+        self.effort_smoother = Smoother(
+            T=1.0 / self.frequency,
+            alpha=self.alpha,
+            beta=self.beta,
+            history_len=self.history_len,
+        )
+        self.subscriber = rospy.Subscriber("/xhand_control/xhand_state", XHandStateArrayMsg, self.callback)
+        self.publisher = rospy.Publisher("/xhand_control/xhand_state_filtered", XHandStateArrayMsg, queue_size=10)
+
+    def callback(self, msg):
+        state = XHandState.from_msg(msg)
+        state.joint.position = self.pos_smoother(state.joint.position)
+        state.joint.effort = self.effort_smoother(state.joint.effort)
+        self.publisher.publish(state.to_msg(state))
+
+    def run(self):
+        rospy.spin()
+
+
+if __name__ == "__main__":
+    try:
+        node = XHandStateFilterNode()
+        node.run()
+    except rospy.ROSInterruptException:
+        pass

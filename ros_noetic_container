@@ -1,0 +1,13 @@
+FROM osrf/ros:noetic-desktop-full
+
+# Install additional packages if needed
+RUN apt-get update && \
+    apt-get install -y \
+        ros-noetic-moveit \
+        ros-noetic-ros-controllers \
+        ros-noetic-gazebo-ros-control \
+    && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /home/ros   

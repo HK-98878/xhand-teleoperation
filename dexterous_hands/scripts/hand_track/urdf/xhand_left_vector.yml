@@ -1,0 +1,121 @@
+# retargeting:
+#   type: vector
+#   urdf_path: xhand_left.urdf
+  
+#   # Target = robot hand. Each entry pairs an origin link with a task link;
+#   # the optimiser tries to match the robot's origin->task vector to the
+#   # corresponding human vector.
+#   target_origin_link_names:
+#     - left_hand_link
+#     - left_hand_link
+#     - left_hand_link
+#     - left_hand_link
+#     - left_hand_link
+#   target_task_link_names:
+#     - left_hand_thumb_rota_tip
+#     - left_hand_index_rota_tip
+#     - left_hand_mid_tip
+#     - left_hand_ring_tip
+#     - left_hand_pinky_tip
+  
+#   # Source = human hand (MANO topology).
+#   # First row: origin indices (all 0 = wrist).
+#   # Second row: task indices (4=thumb tip, 8=index tip, 12=middle tip,
+#   #             16=ring tip, 20=pinky tip).
+#   target_link_human_indices:
+#     - [0, 0, 0, 0, 0]
+#     - [4, 8, 12, 16, 20]
+  
+#   # Tells the optimiser the order to return joint angles in. Order them
+#   # by finger, distal to proximal within each finger - matches how most
+#   # robot hand control APIs expect them, including the XHand SDK.
+#   target_joint_names:
+#     - left_hand_thumb_bend_joint
+#     - left_hand_thumb_rota_joint1
+#     - left_hand_thumb_rota_joint2
+#     - left_hand_index_bend_joint
+#     - left_hand_index_joint1
+#     - left_hand_index_joint2
+#     - left_hand_mid_joint1
+#     - left_hand_mid_joint2
+#     - left_hand_ring_joint1
+#     - left_hand_ring_joint2
+#     - left_hand_pinky_joint1
+#     - left_hand_pinky_joint2
+  
+#   # Scale factor: human vectors are scaled by this before matching to
+#   # the robot. Roughly the ratio of robot palm-to-fingertip length vs
+#   # human palm-to-fingertip length. XHand is approximately human-sized
+#   # so 1.0 is a reasonable starting point. Tune by trial: too low and
+#   # the robot under-reaches, too high and it over-curls.
+#   scaling_factor: 1.5
+  
+#   # Output low-pass smoothing inside dex-retargeting itself. Disable
+#   # because we're filtering on the input side with one-euro - having
+#   # two filters in series produces unpredictable phase behaviour.
+#   low_pass_alpha: 1.0
+
+retargeting:
+  type: vector
+  urdf_path: xhand_left.urdf
+  
+  # Each row pair (origin, task) = one vector to match.
+  # We use both wrist->tip AND mcp->tip vectors per finger.
+  # The mcp->tip vector strongly constrains finger curl;
+  # the wrist->tip vector keeps the overall reach correct.
+  target_origin_link_names:
+    # wrist -> tip vectors (5)
+    - left_hand_link
+    - left_hand_link
+    - left_hand_link
+    - left_hand_link
+    - left_hand_link
+    # mcp/base -> tip vectors (5) - the second knuckle of each finger
+    - left_hand_link
+    - left_hand_link
+    - left_hand_link
+    - left_hand_link
+    - left_hand_link
+  
+  target_task_link_names:
+    - left_hand_thumb_rota_tip
+    - left_hand_index_rota_tip
+    - left_hand_mid_tip
+    - left_hand_ring_tip
+    - left_hand_pinky_tip
+    - left_hand_thumb_rota_link2
+    - left_hand_index_rota_link2
+    - left_hand_mid_link2
+    - left_hand_ring_link2
+    - left_hand_pinky_link2
+  
+  # First row: human origin indices. Second: human task indices.
+  # MANO joints: 0=wrist, 4=thumb_tip, 8=index_tip, 12=mid_tip,
+  # 16=ring_tip, 20=pinky_tip.
+  # MCP joints (knuckles): 1=thumb_mcp, 5=index_mcp, 9=mid_mcp,
+  # 13=ring_mcp, 17=pinky_mcp.
+  target_link_human_indices:
+    - [0, 0, 0, 0, 0,    0, 0, 0, 0, 0]
+    - [4, 8, 12, 16, 20, 3, 7, 11, 15, 19]
+  
+  target_joint_names:
+    # Thumb (3 DOF)
+    - left_hand_thumb_bend_joint
+    - left_hand_thumb_rota_joint1
+    - left_hand_thumb_rota_joint2
+    # Index (3 DOF including bend)
+    - left_hand_index_bend_joint
+    - left_hand_index_joint1
+    - left_hand_index_joint2
+    # Middle (2 DOF)
+    - left_hand_mid_joint1
+    - left_hand_mid_joint2
+    # Ring (2 DOF)
+    - left_hand_ring_joint1
+    - left_hand_ring_joint2
+    # Pinky (2 DOF)
+    - left_hand_pinky_joint1
+    - left_hand_pinky_joint2
+  
+  scaling_factor: 1.2
+  low_pass_alpha: 1.0

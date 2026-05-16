@@ -1,0 +1,10 @@
+[submodule "dexterous_hands/SOEM-1.4.0"]
+	path = dexterous_hands/SOEM-1.4.0
+	url = https://github.com/OpenEtherCATsociety/SOEM.git
+	branch = feature/soem_140
+[submodule "dexterous_hands/scripts/hand_track/hamer"]
+	path = dexterous_hands/scripts/hand_track/hamer
+	url = https://github.com/geopavlakos/hamer.git
+[submodule "dexterous_hands/scripts/hand_track_leap/leapc-python-bindings"]
+	path = dexterous_hands/scripts/hand_track_leap/leapc-python-bindings
+	url = https://github.com/ultraleap/leapc-python-bindings.git

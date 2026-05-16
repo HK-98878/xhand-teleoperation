@@ -1,0 +1,34 @@
+retargeting:
+  type: DexPilot
+  urdf_path: xhand_left.urdf
+  
+  wrist_link_name: "left_hand_link"
+  
+  finger_tip_link_names:
+    - "left_hand_thumb_rota_tip"
+    - "left_hand_index_rota_tip"
+    - "left_hand_mid_tip"
+    - "left_hand_ring_tip"
+    - "left_hand_pinky_tip"
+  
+  scaling_factor: 1.0
+  low_pass_alpha: 1.0
+  
+  target_joint_names:
+  # Thumb (3 DOF)
+  - left_hand_thumb_bend_joint
+  - left_hand_thumb_rota_joint1
+  - left_hand_thumb_rota_joint2
+  # Index (3 DOF including bend)
+  - left_hand_index_bend_joint
+  - left_hand_index_joint1
+  - left_hand_index_joint2
+  # Middle (2 DOF)
+  - left_hand_mid_joint1
+  - left_hand_mid_joint2
+  # Ring (2 DOF)
+  - left_hand_ring_joint1
+  - left_hand_ring_joint2
+  # Pinky (2 DOF)
+  - left_hand_pinky_joint1
+  - left_hand_pinky_joint2

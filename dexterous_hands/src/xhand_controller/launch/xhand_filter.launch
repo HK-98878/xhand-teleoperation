@@ -1,0 +1,13 @@
+<launch>
+    <arg name="frequency" default="83.0" />
+    <arg name="alpha" default="0.1" />
+    <arg name="beta" default="0.01" />
+    <arg name="history_len" default="5" />
+    <!-- 根据 use_gdb 参数来决定是否启用 GDB -->
+    <node name="xhand_filter" pkg="xhand_controller" type="smoother" output="screen">
+        <param name="frequency" type="double" value="$(arg frequency)" />
+        <param name="alpha" type="double" value="$(arg alpha)" />
+        <param name="beta" type="double" value="$(arg beta)" />
+        <param name="history_len" type="int" value="$(arg history_len)" />
+    </node>
+</launch>

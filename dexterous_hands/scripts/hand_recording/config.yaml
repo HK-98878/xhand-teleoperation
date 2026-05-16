@@ -1,0 +1,75 @@
+# VLA capture config
+# Camera controls are applied via v4l2-ctl before opening the device.
+# Run `python hand_recording/capture.py --list-controls --camera <name>` to see
+# the specific webcam parameters, then adjust values here. Any control set to null
+# is skipped. 
+# 
+# Device paths use /dev/v4l/by-id/ symlinks so they survive reboots, replugging, 
+# and reordering.
+
+cameras:
+  - name: ugreen_main          # used in dataset; becomes the cameras/<name>/ subdir
+    enabled: true
+    device: /dev/v4l/by-id/usb-UGREEN_Camera_UGREEN_Camera_SN0001-video-index0
+    width: 1920
+    height: 1080
+    fps: 30
+    fourcc: MJPG               # UGreen needs MJPG for 30fps over USB
+    preview: true
+    preview_scale: 0.5
+
+    controls:
+      auto_exposure: 1                  # 1=manual, 3=auto
+      exposure_time_absolute: 200       # in 100us units (must be multiple of 100 @ 50Hz)
+      exposure_dynamic_framerate: 0     # disables exposure-driven framerate drops
+
+      white_balance_automatic: 0
+      white_balance_temperature: 3600
+
+      gain: 0
+      gamma: 80
+      brightness: 0
+      contrast: 32
+      saturation: 45
+      sharpness: 2
+      backlight_compensation: 0
+      power_line_frequency: 1           # 1=50Hz (UK/EU), 2=60Hz (US)
+      # power_line_frequency only meaningful when auto_exposure=3. Otherwise
+      # pick exposure_time_absolute as a multiple of 100 (50Hz) or 83 (60Hz).
+
+  - name: c920_wrist
+    enabled: true
+    device: /dev/v4l/by-id/usb-046d_HD_Pro_Webcam_C920_77807C6F-video-index0
+    width: 1920
+    height: 1080
+    fps: 30
+    fourcc: MJPG
+    preview: true
+    preview_scale: 0.5
+
+    controls:
+      auto_exposure: 1
+      exposure_time_absolute: 200
+      # focus_automatic_continuous: 0
+      # focus_absolute: 100
+      white_balance_automatic: 0
+      white_balance_temperature: 3000
+      gain: 0
+      brightness: 128
+      contrast: 128
+      saturation: 128
+      sharpness: 128
+      backlight_compensation: 0
+      power_line_frequency: 1
+
+recording:
+  output_dir: ./raw_recordings
+  container: mkv                # MJPEG-in-Matroska, no re-encode at capture time
+  warn_dropped_frames: true     # log if any camera's inter-frame interval exceeds 1.5x expected
+
+robot:
+  host: localhost               # rosbridge_server host
+  port: 9090                    # rosbridge_server port
+  hand_index: 0                 # which entry in XHandStateArray.hand_states[] to record
+  n_fingers: 5                  # used for sanity-check warnings only
+  n_joints: 12                  # informational only

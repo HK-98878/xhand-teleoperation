@@ -1,0 +1,10 @@
+<launch>
+    <arg name="debug" default="false" />
+    <arg unless="$(arg debug)" name="launch_prefix" value="" />
+    <arg if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
+    <rosparam file="$(find xhand_control_ros)/config/xhand_config.yaml" command="load"/>
+    <!-- 根据 use_gdb 参数来决定是否启用 GDB -->
+    <node name="xhand_control" pkg="xhand_control_ros" type="xhand_control_ros_node" output="screen" launch-prefix="$(arg launch_prefix)">
+
+    </node>
+</launch>

@@ -1,0 +1,110 @@
+sudo docker run --privileged --network host -it -v /home/tln:/mnt/data 镜像名
+sudo docker start  8693e11dfcf8
+sudo docker exec -it 8693e11dfcf8 bash
+力控位控程序切换版
+进入docker以后：
+cd /mnt/data/dexterous_hands
+source /opt/ros/noetic/setup.bash 
+source devel/setup.bash
+roslaunch xhand_control_ros xhand_control.launch 
+
+看到[ INFO] [1736502420.021493921]: XHand device opened就算成功
+
+第二步：
+新开终端，然后依次输入：
+sudo docker exec -it 8693e11dfcf8 bash
+cd /mnt/data/dexterous_hands
+source /opt/ros/noetic/setup.bash & source devel/setup.bash
+/usr/bin/python3 /mnt/data/dexterous_hands/scripts/hand_switch_controller.py
+
+看到[INFO] [1736502565.985913]: Resetting the system...就算成功
+
+第三步：
+新开终端，然后依次输入：
+sudo docker exec -it 8693e11dfcf8 bash
+cd /mnt/data/dexterous_hands
+source /opt/ros/noetic/setup.bash & source devel/setup.bash
+/usr/bin/python3 /mnt/data/dexterous_hands/scripts/avp_send_q.py
+
+测试几指抓：
+/usr/bin/python3 /mnt/data/dexterous_hands/scripts/main_test_* 输入 2 两指抓 3 三指抓 (5 or else) 五指抓
+
+target effort
+# target_effort = [30,30,3,3,3,3,3,3,2,2]第0组 轻抓
+# target_effort = [40,40,5,5,5,5,5,5,2,2]第一组
+# target_effort = [40,40,10,10,10,10,10,10,2,2]第二组
+# target_effort = [60,60,15,15,15,15,15,15,2,2]第三组 大力
+# target_effort = [100,100,20,20,20,20,20,20,5,5]第四组 超大力
+y = kx拟合后
+系数 k: 4.729907773386033
+取k = 5
+
+#第二版，在正弦轨迹到达最大值时维持住最大值，保持力控模式
+把hand_switch_controller.py---->back.py
+
+#第三版，只根据q_m，加一个delta_q
+add_delta_q.py
+
+#第四版，自动开合状态机，力控时使用delta_q
+#状态机flag：2个，第一个是人设定手是抓/松开，第二个是手是否抓到了东西，状态机转移规则是
+00--人设定抓-->10->移动到预抓位，开始力控到抓稳东西->11-->出现意外（人拽走东西或东西掉了）手松开回到10状态
+
+#清零传感器
+rosservice call /xhand_control/reset_hand_sensor '{hand_id: 0, sensor_id: 20}'
+读
+effort[ 1.16799927  4.41799927  1.45200348 -0.16600037  0.38600159  0.13800049
+ -0.0759964  -1.2559967   0.03399658 -0.89199829 -2.01399994 -1.23199844]
+
+#这是手立着的时候的参数，（大拇指的kp可以设置大一些）
+pre_grasp_pos = np.array([1.5, 0.1, 0.5, 0.0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+pre_grasp_kp = np.array([15.0, 15.0, 20.0, 15.0, 10.0, 25.0, 10.0, 25.0, 10.0, 25.0, 10.0, 25.0])
+pre_grasp_kd = np.array([0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 1.0, 0.05])
+delta_position = np.array([0, 30, 30, 0, 15, 10, 15, 10, 15, 10, 15, 10])
+
+
+#手躺着
+# 预抓位置
+pre_grasp_pos = np.array([1.57, 0.1, 0.5, 0.0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+pre_grasp_kp = np.array([50.0, 35.0, 30.0, 15.0, 35.0, 25.0, 35.0, 25.0, 35.0, 25.0, 15.0, 25.0])
+pre_grasp_kd = np.array([0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 1.0, 0.05])
+pre_grasp_ki = np.ones_like(pre_grasp_kp) * 0.00
+pre_grasp_effort_limit = np.ones_like(pre_grasp_kp) * 75
+pre_grasp_cmd = XHandCommand(
+    position=pre_grasp_pos,
+    kp=pre_grasp_kp,
+    ki=pre_grasp_ki,
+    kd=pre_grasp_kd,
+    effort_limit=pre_grasp_effort_limit,
+    mode=3,
+)
+# control_joints = np.delete(np.arange(12), [0, 3])(最开始控制关节的，这里靠delta_q给0就可以mask掉了)
+upper_limit = np.array([2.0, 1.57, 1.57, 0.0, 1.92, 1.92, 1.92, 1.92, 1.92, 1.92, 1.92, 1.92]) * 0.8
+lower_limit = np.array([0.1, 0.1, 0.1, 0.0 , 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+delta_position = np.array([25, 20, 20, 0, 15, 10, 15, 10, 15, 10, 15, 10])
+delta_position = np.array([0, 20, 20, 0, 30, 10, 30, 10, 30, 10, 30, 10])
+
+
+快抓
+pre_grasp_pos = np.array([1.5, 0.1, 0.3, 0.0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+# pre_grasp_kp = np.array([40.0, 25.0, 20.0, 15.0, 10.0, 25.0, 10.0, 25.0, 10.0, 25.0, 10.0, 25.0]) 
+pre_grasp_kp = np.array([25, 25.0, 20.0/2, 15.0, 10.0, 25.0/4, 10.0, 25.0/4, 10.0, 25.0/4, 10.0, 25.0/4]) * 7.5
+pre_grasp_kd = np.array([0.05, 0.05, 0.05, 0.05, 0.05, 0.05 * 5, 0.05, 0.05 * 5, 0.05, 0.05 * 5, 1.0, 0.5]) * 2
+pre_grasp_ki = np.ones_like(pre_grasp_kp) * 0.00
+pre_grasp_effort_limit = np.ones_like(pre_grasp_kp) * 250
+pre_grasp_cmd = XHandCommand(
+    position=pre_grasp_pos,
+    kp=pre_grasp_kp,
+    ki=pre_grasp_ki,
+    kd=pre_grasp_kd,
+    effort_limit=pre_grasp_effort_limit,
+    mode=3,
+)
+# control_joints = np.delete(np.arange(12), [0, 3])(最开始控制关节的，这里靠delta_q给0就可以mask掉了)
+# upper_limit = np.array([2.0, 1.57, 1.57, 0.0, 1.92, 1.92, 1.92, 1.92, 1.92, 1.92, 1.92, 1.92]) * 0.8 和svm_automachine一致的上限
+upper_limit = np.array([2.0 * 2 * 0.8, 1.57, 1.5, 0.0, 1.92, 1.92, 1.92, 1.92, 1.92, 1.92, 1.92, 1.92]) * 0.45 # 抓网球的上限
+# upper_limit = np.array([1.44, 0.7, 0.6, 0.0, 1.92, 1.92, 1.92, 1.92, 1.92, 1.92, 1.92, 1.92]) * 0.45
+lower_limit = np.array([0.1, 0.1, 0.1, 0.0 , 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+delta_position = np.array([0, 30, 30, 0, 15, 10, 15, 10, 15, 10, 15, 10]) 
+
+
+

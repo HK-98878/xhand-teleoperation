@@ -1,0 +1,6 @@
+numpy>=1.23
+open3d>=0.17
+matplotlib>=3.5
+roslibpy>=1.5
+# Ultraleap Gemini Python bindings are NOT pip-installable -- install separately
+# from https://github.com/ultraleap/leapc-python-bindings (see README).
