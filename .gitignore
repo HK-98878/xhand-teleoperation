@@ -14,6 +14,7 @@ dexterous_hands/scripts/hand_track/_DATA
 models/
 
 containers/run
+notes.txt
 
 SOEM-1.4.0.zip
 .catkin_workspace
