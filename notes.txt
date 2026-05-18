@@ -21,3 +21,7 @@ sudo apt-get update && sudo apt-get install pip python3-tk && pip install matplo
 
 (outside container)
 sudo xhost +local:`sudo docker inspect --format='{{ .Config.Hostname }}' <docker id>`
+
+
+
+python scripts/deploy_vla.py --checkpoint models/version_1/ --device cuda --task "Wait for the grasp position, then grab and hold the box" --chunk-size 15

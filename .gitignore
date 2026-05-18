@@ -11,6 +11,8 @@ dexterous_hands/logs
 
 dexterous_hands/scripts/hand_track/_DATA
 
+models/
+
 containers/run
 
 SOEM-1.4.0.zip
