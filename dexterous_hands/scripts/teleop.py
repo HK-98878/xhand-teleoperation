@@ -10,7 +10,7 @@ from wilor_mini.pipelines.wilor_hand_pose3d_estimation_pipeline import (
     WiLorHandPose3dEstimationPipeline,
 )
 
-from hand_track.track4 import LatestFrame, LatestPose, StageStats, R_MANO_TO_XHAND, camera_thread, inference_thread, suppress_output, draw_overlay
+from hand_track.track_wilor import LatestFrame, LatestPose, StageStats, R_MANO_TO_XHAND, camera_thread, inference_thread, suppress_output, draw_overlay
 from hand_track.tuning.custom_retarget import retarget_xhand
 from hand_track.utils import XHandPublisher, OneEuroVector
 
