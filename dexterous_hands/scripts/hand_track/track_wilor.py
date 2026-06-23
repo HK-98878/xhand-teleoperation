@@ -281,6 +281,63 @@ def inference_thread(pipe, latest_frame: LatestFrame, latest_pose: LatestPose,
             latest_pose.seq += 1
 
 
+# --- command thread --------------------------------------------------------
+
+def command_thread(latest_pose: LatestPose, filtered_pose: LatestPose,
+                   retargeting, stop_event: threading.Event,
+                   stats: StageStats, retarget_stats: StageStats,
+                   tick_hz: float = 50.0):
+    last_seq = -1
+    dt = 1.0 / tick_hz
+    indices = retargeting.optimizer.target_link_human_indices
+    while not stop_event.is_set():
+        t0 = time.perf_counter()
+        with Timer(stats):
+            with latest_pose.lock:
+                seq = latest_pose.seq
+                if seq == last_seq or latest_pose.kpts_3d is None:
+                    kpts_3d = None
+                else:
+                    kpts_3d = latest_pose.kpts_3d.copy()
+                    kpts_2d = (latest_pose.kpts_2d.copy()
+                               if latest_pose.kpts_2d is not None else None)
+                    is_right = latest_pose.is_right
+                    capture_ts = latest_pose.capture_ts
+                    inf_ts = latest_pose.inference_ts
+
+            if kpts_3d is not None:
+                last_seq = seq
+                kpts_xhand = (R_MANO_TO_XHAND @ kpts_3d.T).T
+
+                with Timer(retarget_stats):
+                    ref_value = kpts_xhand[indices]
+                    qpos = retargeting.retarget(ref_value)
+
+                try:
+                    limits = retargeting.optimizer.joint_limits
+                    hit_limit = bool(
+                        np.any(qpos <= limits[:, 0] + 1e-4) or
+                        np.any(qpos >= limits[:, 1] - 1e-4)
+                    )
+                except AttributeError:
+                    hit_limit = False
+
+                with filtered_pose.lock:
+                    filtered_pose.kpts_3d = kpts_3d
+                    filtered_pose.kpts_2d = kpts_2d
+                    filtered_pose.is_right = is_right
+                    filtered_pose.capture_ts = capture_ts
+                    filtered_pose.inference_ts = inf_ts
+                    filtered_pose.qpos = qpos
+                    filtered_pose.qpos_clipped = hit_limit
+                    filtered_pose.seq += 1
+
+        elapsed = time.perf_counter() - t0
+        sleep_t = dt - elapsed
+        if sleep_t > 0:
+            time.sleep(sleep_t)
+
+
 # --- main thread visualisation --------------------------------------------
 
 def draw_overlay(frame_bgr: np.ndarray, kpts_2d: np.ndarray,
@@ -394,6 +451,9 @@ def main():
         threading.Thread(target=inference_thread, name="inference", daemon=True,
                          args=(pipe, latest_frame, latest_pose, stop_event,
                                stages["inference"], stages["infer_idle"])),
+        threading.Thread(target=command_thread, name="command", daemon=True,
+                         args=(latest_pose, filtered_pose, retargeting, stop_event,
+                               stages["command"], stages["retarget"])),
     ]
     for t in threads:
         t.start()
